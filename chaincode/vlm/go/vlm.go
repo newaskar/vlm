@@ -132,7 +132,7 @@ func (s *SmartContract) transferCar(APIstub shim.ChaincodeStubInterface, args []
 }
 
 func getCarForRegistrationNo(stub shim.ChaincodeStubInterface, registrationNo string) (string, error) {
-	queryString := fmt.Sprintf("{\"selector\":{\"chassisNo\",\"registrationNo\":\"%s\"}}", registrationNo)
+	queryString := fmt.Sprintf("{\"selector\":{\"registrationNo\":\"%s\"}}", registrationNo)
 	resultsIterator, err := stub.GetQueryResult(queryString)
 	if err != nil {
 		return "", err
@@ -166,8 +166,8 @@ func (s *SmartContract) sellnRegisterCar(APIstub shim.ChaincodeStubInterface, ar
 	}
 
 	OldchassisNo, err := getCarForRegistrationNo(APIstub, registrationNo)
-	if err == nil && OldchassisNo != "" {
-		errStr := fmt.Sprintf("Car found for the registration no. ChassisNo = %s", OldchassisNo)
+	if err == nil && OldchassisNo != "" && OldchassisNo != chasisNo {
+		errStr := fmt.Sprintf("Car found for the same registration number. ChassisNo = %s", OldchassisNo)
 		return shim.Error(errStr)
 	}
 

@@ -43,7 +43,7 @@ function getCar() {
   channel.addOrderer(order);
 
   //add buyer peer
-  var peer = fabric_client.newPeer("grpc://localhost:9051");
+  var peer = fabric_client.newPeer("grpc://localhost:7051");
   channel.addPeer(peer);
 
   Fabric_Client.newDefaultKeyValueStore({ path: store_path })
@@ -58,7 +58,7 @@ function getCar() {
       fabric_client.setCryptoSuite(crypto_suite);
 
       // get the enrolled user from persistence, this user will sign all requests
-      return fabric_client.getUserContext("dealerUser", true);
+      return fabric_client.getUserContext("manfUser", true);
     })
     .then(user_from_store => {
       if (user_from_store && user_from_store.isEnrolled()) {

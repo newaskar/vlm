@@ -98,7 +98,7 @@ function issueCarChallan() {
         isProposalGood = true;
         console.log("Transaction proposal was good");
       } else {
-        console.error("Transaction proposal was bad");
+        console.error("Transaction proposal was bad => " + proposalResponses[0].response.message);
       }
       if (isProposalGood) {
         console.log(
