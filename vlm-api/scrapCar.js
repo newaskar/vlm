@@ -78,7 +78,7 @@ function scrapCar() {
       var request = {
         chaincodeId: "vlmcc",
         fcn: "scrapCar",
-        args: ["1001"],
+        args: ["1002"],
         chainId: "vlm",
         txId: tx_id
       };
@@ -158,7 +158,7 @@ function scrapCar() {
               } else {
                 console.log(
                   "The transaction has been committed on peer " +
-                    event_hub._ep._endpoint.addr
+                  event_hub._ep._endpoint.addr
                 );
                 resolve(return_status);
               }
@@ -205,7 +205,7 @@ function scrapCar() {
       } else {
         console.log(
           "Transaction failed to be committed to the ledger due to ::" +
-            results[1].event_status
+          results[1].event_status
         );
       }
     })

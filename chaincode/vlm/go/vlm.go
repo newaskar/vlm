@@ -26,6 +26,9 @@ type CarStruct struct {
 	RegistrationNo        string `json:"registrationNo"`
 	RegistrationExpiryDae string `json:"registrationExpiryDae"`
 	Status                string `json:"status"`
+	LoanAmount            int64  `json:"loanAmt"`
+	ChallanAmount         int64  `json:"challanAmt"`
+	InsuranceClaim        int64  `json:"insuranceClaim"`
 }
 
 // Init SmartContract
@@ -46,8 +49,18 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 		return s.sellnRegisterCar(APIstub, args)
 	} else if function == "scrapCar" {
 		return s.scrapCar(APIstub, args)
+	} else if function == "clearLoan" {
+		return s.clearLoan(APIstub, args)
+	} else if function == "issueChallan" {
+		return s.issueChallan(APIstub, args)
+	} else if function == "payChallan" {
+		return s.payChallan(APIstub, args)
+	} else if function == "registerClaim" {
+		return s.registerClaim(APIstub, args)
 	} else if function == "getCar" {
 		return s.getCar(APIstub, args)
+	} else if function == "getCarByRegistrationNo" {
+		return s.getCarByRegistrationNo(APIstub, args)
 	} else if function == "getCarHistory" {
 		return s.getCarHistory(APIstub, args)
 	}
@@ -64,7 +77,10 @@ func (s *SmartContract) createCar(APIstub shim.ChaincodeStubInterface, args []st
 		Owner:                 "Maruti",
 		RegistrationNo:        "",
 		RegistrationExpiryDae: "",
-		Status:                "New"}
+		Status:                "New",
+		LoanAmount:				0,
+		ChallanAmount:			0,
+		InsuranceClaim:			0}
 	CarBytes, err := json.Marshal(Car)
 	if err != nil {
 		return shim.Error("JSON Marshal failed.")
@@ -99,7 +115,10 @@ func (s *SmartContract) transferCar(APIstub shim.ChaincodeStubInterface, args []
 		Owner:                 owner,
 		RegistrationNo:        "",
 		RegistrationExpiryDae: "",
-		Status:                "Dealer"}
+		Status:                "Dealer",
+		LoanAmount:				0,
+		ChallanAmount:			0,
+		InsuranceClaim:			0}
 
 	CarBytes, err := json.Marshal(Car)
 	if err != nil {
@@ -112,6 +131,28 @@ func (s *SmartContract) transferCar(APIstub shim.ChaincodeStubInterface, args []
 	return shim.Success(nil)
 }
 
+func getCarForRegistrationNo(stub shim.ChaincodeStubInterface, registrationNo string) (string, error) {
+	queryString := fmt.Sprintf("{\"selector\":{\"chassisNo\",\"registrationNo\":\"%s\"}}", registrationNo)
+	resultsIterator, err := stub.GetQueryResult(queryString)
+	if err != nil {
+		return "", err
+		fmt.Println("Error in GetQueryResult")
+	}
+	defer resultsIterator.Close()
+
+	fmt.Println("Has resulted ")
+	for resultsIterator.HasNext() {
+		fmt.Println("Iterator has cars")
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return "", err
+		} else {
+			return queryResponse.Key, nil
+		}
+	}
+	return "", nil
+}
+
 // sellnRegisterCar - This is for dealers to sell the cars to customer.
 func (s *SmartContract) sellnRegisterCar(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 
@@ -119,6 +160,60 @@ func (s *SmartContract) sellnRegisterCar(APIstub shim.ChaincodeStubInterface, ar
 	owner := args[1]
 	registrationNo := args[2]
 	registrationExpiryDae := args[3]
+	loanAmount, err := strconv.ParseInt(args[4], 10, 64)
+	if err != nil {
+		return shim.Error("Error converting loan amount.")
+	}
+
+	OldchassisNo, err := getCarForRegistrationNo(APIstub, registrationNo)
+	if err == nil && OldchassisNo != "" {
+		errStr := fmt.Sprintf("Car found for the registration no. ChassisNo = %s", OldchassisNo)
+		return shim.Error(errStr)
+	}
+
+	CarAsBytes, _ := APIstub.GetState(chasisNo)
+	var car CarStruct
+
+	err = json.Unmarshal(CarAsBytes, &car)
+	if err != nil {
+		return shim.Error("Issue with Car json unmarshaling")
+	}
+	
+	if car.LoanAmount != 0 {
+		return shim.Error("Cannot sell car with loan.")
+	}
+
+	if car.ChallanAmount != 0 {
+		return shim.Error("Cannot sell car with challan.")
+	}
+
+	if car.Status == "Scrapped" {
+		return shim.Error("Cannot sell car that is already scrapped.")
+	}
+
+	Car := CarStruct{ChassisNo: car.ChassisNo,
+		Owner:                 owner,
+		RegistrationNo:        registrationNo,
+		RegistrationExpiryDae: registrationExpiryDae,
+		Status:                "Customer",
+		LoanAmount:				loanAmount,
+		ChallanAmount:			0,
+		InsuranceClaim:			car.InsuranceClaim}
+
+	CarBytes, err := json.Marshal(Car)
+	if err != nil {
+		return shim.Error("Issue with Car json marshaling")
+	}
+
+	APIstub.PutState(Car.ChassisNo, CarBytes)
+	fmt.Println("Car sold to customer -> ", Car)
+
+	return shim.Success(nil)
+}
+
+// clearLoan - This is for bank to clear the car loans.
+func (s *SmartContract) clearLoan(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	chasisNo := args[0]
 
 	CarAsBytes, _ := APIstub.GetState(chasisNo)
 	var car CarStruct
@@ -128,15 +223,14 @@ func (s *SmartContract) sellnRegisterCar(APIstub shim.ChaincodeStubInterface, ar
 		return shim.Error("Issue with Car json unmarshaling")
 	}
 
-	if car.Status == "Scrapped" {
-		return shim.Error("Cannot sell Car that is already scrapped")
-	}
-
 	Car := CarStruct{ChassisNo: car.ChassisNo,
-		Owner:                 owner,
-		RegistrationNo:        registrationNo,
-		RegistrationExpiryDae: registrationExpiryDae,
-		Status:                "Customer"}
+		Owner:                 car.Owner,
+		RegistrationNo:        car.RegistrationNo,
+		RegistrationExpiryDae: car.RegistrationExpiryDae,
+		Status:                car.Status,
+		LoanAmount:				0,
+		ChallanAmount:			car.ChallanAmount,
+		InsuranceClaim:			car.InsuranceClaim}
 
 	CarBytes, err := json.Marshal(Car)
 	if err != nil {
@@ -144,7 +238,123 @@ func (s *SmartContract) sellnRegisterCar(APIstub shim.ChaincodeStubInterface, ar
 	}
 
 	APIstub.PutState(Car.ChassisNo, CarBytes)
-	fmt.Println("Car sold to customer -> ", Car)
+	fmt.Println("Car loan paid -> ", Car)
+
+	return shim.Success(nil)
+}
+
+// issueChallan - This is for traffic police to issue challans for the car.
+func (s *SmartContract) issueChallan(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	chasisNo := args[0]
+	challanAmt, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil {
+		return shim.Error("Error converting challan amount.")
+	}
+
+	CarAsBytes, _ := APIstub.GetState(chasisNo)
+	var car CarStruct
+
+	err = json.Unmarshal(CarAsBytes, &car)
+	if err != nil {
+		return shim.Error("Issue with Car json unmarshaling")
+	}
+
+	newChallanAmt := challanAmt + car.ChallanAmount
+	Car := CarStruct{ChassisNo: car.ChassisNo,
+		Owner:                 car.Owner,
+		RegistrationNo:        car.RegistrationNo,
+		RegistrationExpiryDae: car.RegistrationExpiryDae,
+		Status:                car.Status,
+		LoanAmount:				car.LoanAmount,
+		ChallanAmount:			newChallanAmt,
+		InsuranceClaim:			car.InsuranceClaim}
+
+	CarBytes, err := json.Marshal(Car)
+	if err != nil {
+		return shim.Error("Issue with Car json marshaling")
+	}
+
+	APIstub.PutState(Car.ChassisNo, CarBytes)
+	fmt.Println("Car challan issued -> ", Car)
+
+	return shim.Success(nil)
+}
+
+// payChallan - This is for customer to pay challans for the car.
+func (s *SmartContract) payChallan(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	chasisNo := args[0]
+	challanAmt, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil {
+		return shim.Error("Error converting challan amount.")
+	}
+
+	CarAsBytes, _ := APIstub.GetState(chasisNo)
+	var car CarStruct
+
+	err = json.Unmarshal(CarAsBytes, &car)
+	if err != nil {
+		return shim.Error("Issue with Car json unmarshaling")
+	}
+
+	newChallanAmt := car.ChallanAmount - challanAmt;
+	if newChallanAmt < 0 {
+		newChallanAmt = 0
+	}
+
+	Car := CarStruct{ChassisNo: car.ChassisNo,
+		Owner:                 car.Owner,
+		RegistrationNo:        car.RegistrationNo,
+		RegistrationExpiryDae: car.RegistrationExpiryDae,
+		Status:                car.Status,
+		LoanAmount:				car.LoanAmount,
+		ChallanAmount:			newChallanAmt,
+		InsuranceClaim:			car.InsuranceClaim}
+
+	CarBytes, err := json.Marshal(Car)
+	if err != nil {
+		return shim.Error("Issue with Car json marshaling")
+	}
+
+	APIstub.PutState(Car.ChassisNo, CarBytes)
+	fmt.Println("Car challan -> ", Car)
+
+	return shim.Success(nil)
+}
+
+// registerClaim - This is for insurer to register claim for the car.
+func (s *SmartContract) registerClaim(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	chasisNo := args[0]
+
+	CarAsBytes, _ := APIstub.GetState(chasisNo)
+	var car CarStruct
+
+	err := json.Unmarshal(CarAsBytes, &car)
+	if err != nil {
+		return shim.Error("Issue with Car json unmarshaling")
+	}
+
+	if car.Status != "Customer" {
+		return shim.Error("Insurance claim can only be registered for customer car.")
+	}
+
+	newClainCount := car.InsuranceClaim + 1;
+
+	Car := CarStruct{ChassisNo: car.ChassisNo,
+		Owner:                 car.Owner,
+		RegistrationNo:        car.RegistrationNo,
+		RegistrationExpiryDae: car.RegistrationExpiryDae,
+		Status:                car.Status,
+		LoanAmount:				car.LoanAmount,
+		ChallanAmount:			car.ChallanAmount,
+		InsuranceClaim:			newClainCount}
+
+	CarBytes, err := json.Marshal(Car)
+	if err != nil {
+		return shim.Error("Issue with Car json marshaling")
+	}
+
+	APIstub.PutState(Car.ChassisNo, CarBytes)
+	fmt.Println("Car insurance claim register -> ", Car)
 
 	return shim.Success(nil)
 }
@@ -160,6 +370,14 @@ func (s *SmartContract) scrapCar(APIstub shim.ChaincodeStubInterface, args []str
 	err := json.Unmarshal(CarAsBytes, &car)
 	if err != nil {
 		return shim.Error("Issue with Car json unmarshaling")
+	}
+
+	if car.LoanAmount != 0 {
+		return shim.Error("Cannot scrap car with loan.")
+	}
+
+	if car.ChallanAmount != 0 {
+		return shim.Error("Cannot scarp car with challan.")
 	}
 
 	Car := CarStruct{ChassisNo: car.ChassisNo,
@@ -183,6 +401,18 @@ func (s *SmartContract) getCar(APIstub shim.ChaincodeStubInterface, args []strin
 
 	chasisNo := args[0]
 	CarAsBytes, _ := APIstub.GetState(chasisNo)
+	return shim.Success(CarAsBytes)
+}
+
+func (s *SmartContract) getCarByRegistrationNo(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+
+	registrationNo := args[0]
+	chassisNo, err := getCarForRegistrationNo(APIstub, registrationNo)
+	if err != nil {
+		errStr := fmt.Sprintf("Car not found for the registration no. Error = %s", err)
+		return shim.Error(errStr)
+	}
+	CarAsBytes, _ := APIstub.GetState(chassisNo)
 	return shim.Success(CarAsBytes)
 }
 

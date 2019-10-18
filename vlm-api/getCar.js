@@ -43,7 +43,7 @@ function getCar() {
   channel.addOrderer(order);
 
   //add buyer peer
-  var peer = fabric_client.newPeer("grpc://localhost:7051");
+  var peer = fabric_client.newPeer("grpc://localhost:9051");
   channel.addPeer(peer);
 
   Fabric_Client.newDefaultKeyValueStore({ path: store_path })
@@ -73,7 +73,7 @@ function getCar() {
       var request = {
         chaincodeId: "vlmcc",
         fcn: "getCar",
-        args: ["1002"],
+        args: [process.argv[2]],
         chainId: "vlm"
       };
 

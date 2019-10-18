@@ -78,7 +78,7 @@ function createCar() {
       var request = {
         chaincodeId: "vlmcc",
         fcn: "createCar",
-        args: ["1002"],
+        args: [process.argv[2]],
         chainId: "vlm",
         txId: tx_id
       };
@@ -158,7 +158,7 @@ function createCar() {
               } else {
                 console.log(
                   "The transaction has been committed on peer " +
-                    event_hub._ep._endpoint.addr
+                  event_hub._ep._endpoint.addr
                 );
                 resolve(return_status);
               }
@@ -205,7 +205,7 @@ function createCar() {
       } else {
         console.log(
           "Transaction failed to be committed to the ledger due to ::" +
-            results[1].event_status
+          results[1].event_status
         );
       }
     })

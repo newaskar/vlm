@@ -73,7 +73,7 @@ function getCarHistory() {
       var request = {
         chaincodeId: "vlmcc",
         fcn: "getCarHistory",
-        args: ["1001"],
+        args: [process.argv[2]],
         chainId: "vlm"
       };
 

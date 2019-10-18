@@ -27,6 +27,8 @@ Profiles:
                     - *dlr
                     - *scr
                     - *bank
+                    - *insu
+                    - *traf
 
     vlmOrgChannel:
         Consortium: SampleConsortium
@@ -38,6 +40,8 @@ Profiles:
                     - *dlr
                     - *scr
                     - *bank
+                    - *insu
+                    - *traf
 
 ################################################################################
 #
@@ -143,6 +147,40 @@ Organizations:
             # for cross org gossip communication.  Note, this value is only
             # encoded in the genesis block in the Application section context
             - Host: peer0.bank.vlm.com
+              Port: 7051
+
+    - &insu
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: insuMSP
+
+        # ID to load the MSP definition as
+        ID: insuMSP
+
+        MSPDir: crypto-config/peerOrganizations/insu.vlm.com/msp
+
+        AnchorPeers:
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.insu.vlm.com
+              Port: 7051
+
+    - &traf
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: trafMSP
+
+        # ID to load the MSP definition as
+        ID: trafMSP
+
+        MSPDir: crypto-config/peerOrganizations/traf.vlm.com/msp
+
+        AnchorPeers:
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.traf.vlm.com
               Port: 7051
 ################################################################################
 #
