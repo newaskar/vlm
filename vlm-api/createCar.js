@@ -30,10 +30,10 @@ var store_path = path.join(__dirname, "hfc-key-store");
 console.log("Store path:" + store_path);
 var tx_id = null;
 
-createCar();
+// createCar();
 
 // // Create Car By Manufacturer
-function createCar() {
+function createCar(req, res) {
   //Init fabric client
   var fabric_client = new Fabric_Client();
 
@@ -78,7 +78,7 @@ function createCar() {
       var request = {
         chaincodeId: "vlmcc",
         fcn: "createCar",
-        args: [process.argv[2]],
+        args: [req.body.chasisNo],
         chainId: "vlm",
         txId: tx_id
       };
@@ -215,3 +215,4 @@ function createCar() {
     });
 }
 
+module.export = createCar

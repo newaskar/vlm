@@ -5,42 +5,66 @@ var bodyParser = require('body-parser');
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(bodyParser.json());
 
-var TFBC = require("./FabricHelper")
+var vlm = require("./FabricHelper")
 
 
 // Request LC
-router.post('/requestLC', function (req, res) {
+router.post('/createCar', function (req, res) {
 
-TFBC.requestLC(req, res);
+    vlm.createCar(req, res);
 
 });
 
 // Issue LC
-router.post('/issueLC', function (req, res) {
+router.post('/transferCar', function (req, res) {
 
-    TFBC.issueLC(req, res);
-    
+    vlm.transferCar(req, res);
+
 });
 
 // Accept LC
-router.post('/acceptLC', function (req, res) {
+router.post('/sellnRegisterCar', function (req, res) {
 
-    TFBC.acceptLC(req, res);
-    
+    vlm.sellnRegisterCar(req, res);
+
 });
 
 // Get LC
-router.post('/getLC', function (req, res) {
+router.post('/getCar', function (req, res) {
 
-    TFBC.getLC(req, res);
-    
+    vlm.getCar(req, res);
+
 });
 
-// Get LC history
-router.post('/getLCHistory', function (req, res) {
+//Get LC history
+router.post('/scrapCar', function (req, res) {
 
-    TFBC.getLCHistory(req, res);
-    
+    vlm.scrapCar(req, res);
+
+});
+
+router.post('/getCarHistory', function (req, res) {
+    vlm.getCarHistory(req, res);
+});
+
+router.post('/issueChallan', function (req, res) {
+    vlm.issueChallan(req, res);
+});
+
+router.post('/payChallan', function (req, res) {
+    vlm.payChallan(req, res);
+});
+
+router.post('/registerClaim', function (req, res) {
+    vlm.registerClaim(req, res);
+});
+
+router.post('/payCarLoan', function (req, res) {
+    vlm.payCarLoan(req, res);
+});
+
+router.post('/getCarByNumber', function (req, res) {
+    vlm.getCarByNumber(req, res);
 });
 
 

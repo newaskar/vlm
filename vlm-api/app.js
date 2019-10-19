@@ -6,9 +6,9 @@ var swaggerUi = require('swagger-ui-express');
 var swaggerDocument = require('./swagger.json');
 
 
-var TFBCController = require('./TFBCController');
+var TFBCController = require('./vlmController');
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-app.use('/tfbc', TFBCController);
+app.use('/vlm', TFBCController);
 
 module.exports = app;
